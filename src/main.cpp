@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     printf("模型名称:\t%s\n", model_name);
 
     cv::VideoCapture capture;
-    cv::namedWindow("Camera FPS");
+    cv::namedWindow("Camera FPS", cv::WINDOW_NORMAL);
     if (strlen(image_name) == 1) {
         capture.open((int)(image_name[0] - '0'));
     } else {
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     }
 
     // 设置线程数
-    int n = 16;
+    int n = 60;
     int frames = 0;
     printf("线程数:\t%d\n", n);
     // 类似于多个rk模型的集合?
@@ -90,17 +90,18 @@ int main(int argc, char** argv)
         }
 
         threadQueue.pop();
-        threadQueue.push(threadPool.AddTaskToTaskQueue(&ImageShow, rknnPool[frames % n]->m_srcImage));
-        if (!capture.read(rknnPool[frames % n]->m_srcImage)) {
+        threadQueue.push(threadPool.AddTaskToTaskQueue(&ImageShow, rknnPool[frames]->m_srcImage));
+        if (!capture.read(rknnPool[frames]->m_srcImage)) {
             break;
         }
-        threadQueue.push(threadPool.AddTaskToTaskQueue(&RknnProcess::Inference, &(*rknnPool[frames++ % n])));
+        threadQueue.push(threadPool.AddTaskToTaskQueue(&RknnProcess::Inference, &(*rknnPool[frames++])));
 
-        if (frames % 60 == 0) {
+        if (frames == n) {
             gettimeofday(&time, nullptr);
             tmpTime = time.tv_sec * 1000 + time.tv_usec / 1000;
             printf("60帧平均帧率:\t%f帧\n", 60000.0 / (float)(tmpTime - lopTime));
             lopTime = tmpTime;
+            frames = 0;
         }
     }
 
