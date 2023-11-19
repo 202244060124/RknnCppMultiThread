@@ -197,7 +197,7 @@ int RknnProcess::ImageRgaResize(Mat& rgb_img, int img_width, int img_height)
     return 0;
 }
 
-int RknnProcess::Inference()
+int RknnProcess::Inference(void)
 {
     cv::Mat rgbImg;
     // 获取图像宽高

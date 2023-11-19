@@ -31,6 +31,14 @@ using std::queue;
 using std::time;
 using std::time_t;
 using std::vector;
+
+int ImageShow(Mat image)
+{
+    cv::imshow("Camera FPS", image);
+    cv::waitKey(1);
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
     char* model_name = NULL;
@@ -82,10 +90,7 @@ int main(int argc, char** argv)
         }
 
         threadQueue.pop();
-        cv::imshow("Camera FPS", rknnPool[frames % n]->m_srcImage);
-        if (cv::waitKey(1) == 'q') { // 延时1毫秒,按q键退出
-            break;
-        }
+        threadQueue.push(threadPool.AddTaskToTaskQueue(&ImageShow, rknnPool[frames % n]->m_srcImage));
         if (!capture.read(rknnPool[frames % n]->m_srcImage)) {
             break;
         }
