@@ -37,8 +37,10 @@ set(CMAKE_INSTALL_RPATH "lib")
 include_directories( ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(rknn_yolov5_demo
-        src/main.cc
-        src/postprocess.cc
+        src/post_process.cpp
+        src/rknn_process.cpp
+        src/thread_pool.cpp
+        src/main.cpp
 )
 
 target_link_libraries(rknn_yolov5_demo

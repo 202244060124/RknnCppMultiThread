@@ -22,11 +22,11 @@
 #include <vector>
 #define _BASETSD_H
 
-#include "ThreadPool.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "rknnPool.hpp"
+#include "rknn_process.h"
+#include "thread_pool.h"
 using std::queue;
 using std::time;
 using std::time_t;
@@ -44,27 +44,29 @@ int main(int argc, char** argv)
 
     cv::VideoCapture capture;
     cv::namedWindow("Camera FPS");
-    if (strlen(image_name) == 1)
+    if (strlen(image_name) == 1) {
         capture.open((int)(image_name[0] - '0'));
-    else
+    } else {
         capture.open(image_name);
+    }
 
     // 设置线程数
-    int n = 6, frames = 0;
+    int n = 16;
+    int frames = 0;
     printf("线程数:\t%d\n", n);
     // 类似于多个rk模型的集合?
-    vector<rknn_lite*> rkpool;
+    vector<RknnProcess*> rknnPool;
     // 线程池
-    dpool::ThreadPool pool(n);
+    ThreadPool threadPool(n);
     // 线程队列
-    queue<std::future<int>> futs;
+    queue<std::future<int>> threadQueue;
 
     // 初始化
     for (int i = 0; i < n; i++) {
-        rknn_lite* ptr = new rknn_lite(model_name, i % 3);
-        rkpool.push_back(ptr);
-        capture >> ptr->ori_img;
-        futs.push(pool.submit(&rknn_lite::interf, &(*ptr)));
+        RknnProcess* rknnObj = new RknnProcess(model_name, i % 3);
+        rknnPool.push_back(rknnObj);
+        capture >> rknnObj->m_srcImage;
+        threadQueue.push(threadPool.AddTaskToTaskQueue(&RknnProcess::Inference, &(*rknnObj)));
     }
 
     struct timeval time;
@@ -75,15 +77,19 @@ int main(int argc, char** argv)
     long tmpTime, lopTime = time.tv_sec * 1000 + time.tv_usec / 1000;
 
     while (capture.isOpened()) {
-        if (futs.front().get() != 0)
+        if (threadQueue.front().get() != 0) {
             break;
-        futs.pop();
-        cv::imshow("Camera FPS", rkpool[frames % n]->ori_img);
-        if (cv::waitKey(1) == 'q') // 延时1毫秒,按q键退出
+        }
+
+        threadQueue.pop();
+        cv::imshow("Camera FPS", rknnPool[frames % n]->m_srcImage);
+        if (cv::waitKey(1) == 'q') { // 延时1毫秒,按q键退出
             break;
-        if (!capture.read(rkpool[frames % n]->ori_img))
+        }
+        if (!capture.read(rknnPool[frames % n]->m_srcImage)) {
             break;
-        futs.push(pool.submit(&rknn_lite::interf, &(*rkpool[frames++ % n])));
+        }
+        threadQueue.push(threadPool.AddTaskToTaskQueue(&RknnProcess::Inference, &(*rknnPool[frames++ % n])));
 
         if (frames % 60 == 0) {
             gettimeofday(&time, nullptr);
@@ -97,13 +103,17 @@ int main(int argc, char** argv)
     printf("\n平均帧率:\t%f帧\n", float(frames) / (float)(time.tv_sec * 1000 + time.tv_usec / 1000 - initTime + 0.0001) * 1000.0);
 
     // 释放剩下的资源
-    while (!futs.empty()) {
-        if (futs.front().get())
+    while (!threadQueue.empty()) {
+        if (threadQueue.front().get()) {
             break;
-        futs.pop();
+        }
+
+        threadQueue.pop();
     }
-    for (int i = 0; i < n; i++)
-        delete rkpool[i];
+    for (int i = 0; i < n; i++) {
+        delete rknnPool[i];
+    }
+
     capture.release();
     cv::destroyAllWindows();
     return 0;

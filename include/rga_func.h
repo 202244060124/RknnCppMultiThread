@@ -30,4 +30,4 @@ int RGA_deinit(rga_context* rga_ctx);
 #ifdef __cplusplus
 }
 #endif
-#endif /*__RGA_FUNC_H__*/
+#endif /* __RGA_FUNC_H__ */

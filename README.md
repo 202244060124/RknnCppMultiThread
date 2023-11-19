@@ -16,8 +16,8 @@
   * 编译完成后进入install运行命令./rknn_yolov5_demo **模型所在路径** **视频所在路径/摄像头序号**
 
 ### 部署应用
-  * 修改include/rknnPool.hpp中的rknn_lite类
-  * 修改inclue/rknnPool.hpp中的rknnPool类的构造函数
+  * 修改include/rknn_pool.hpp中的rknn_lite类
+  * 修改inclue/rknn_pool.hpp中的rknn_pool类的构造函数
 
 # 多线程模型帧率测试
 * 使用performance.sh进行CPU/NPU定频尽量减少误差
